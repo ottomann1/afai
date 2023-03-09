@@ -1,9 +1,6 @@
 package com.example.Model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
+import jakarta.persistence.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -68,8 +65,9 @@ public class Afcsv {
     private String hireWorkPlace;
 
     @Id
-    @Column(name = "id", nullable = true)
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id", nullable = false)
+    private Long id;
 
     @Column(name = "keywords", nullable = true, length = -1)
     private String keywords;
@@ -276,11 +274,11 @@ public class Afcsv {
         this.hireWorkPlace = hireWorkPlace;
     }
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

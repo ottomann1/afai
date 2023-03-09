@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 @Entity
 public class OpenAIPrompt {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", nullable = false)
     private Long id;
 
     private String prompt;
@@ -37,5 +35,9 @@ public class OpenAIPrompt {
 
     public void setCompletion(String completion) {
         this.completion = completion;
+    }
+
+    public String getJsonlObject(){
+        return "{\"prompt\": \""+prompt+"\", \"completion\": \""+completion+"\"}";
     }
 }

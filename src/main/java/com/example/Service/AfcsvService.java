@@ -5,10 +5,7 @@ import com.example.Repository.AfcsvRepo;
 import com.google.gson.stream.JsonReader;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
-import jakarta.persistence.TypedQuery;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,33 +30,38 @@ public class AfcsvService {
         this.repository = repository;
     }
 
-    public Afcsv getItem(Integer id){
+    public Afcsv getItem(Integer id) {
         return repository.findById(id).get();
     }
 
-    public Collection<Afcsv> getXAmount(int xAmount){
-        Pageable limit = PageRequest.of(0,xAmount);
+    public Collection<Afcsv> getXAmount(int xAmount) {
+        Pageable limit = PageRequest.of(140, xAmount);
         return repository.findAll(limit).get().collect(Collectors.toList());
 
     }
 
-    public Afcsv save(Afcsv afcsv){
+    public Collection<Afcsv> getByCompany(String employer) {
+        return repository.findAllByEmployer(employer);
+    }
+
+    public Afcsv save(Afcsv afcsv) {
         return repository.save(afcsv);
     }
 
-    public void readAfcsvFromFile() throws IOException {
-        InputStream input = new FileInputStream("C:\\reporoot\\setPace\\Database\\src\\main\\resources\\2021_first_6_months.json");
+    public void readAfcsvFromFile(String path) throws IOException {
+        InputStream input = new FileInputStream(path);
         JsonReader reader = new JsonReader(new InputStreamReader(input));
         reader.setLenient(true);
         reader.beginArray();
         while (reader.hasNext()) {
             reader.beginObject();
             Afcsv afcsv = new Afcsv();
+            boolean willSave = false;
             while (reader.hasNext()) {
 
                 String name = reader.nextName();
 //                if (name.equals("id")) {
-//                    afcsv.setId(reader.nextInt());
+//                    afcsv.setId(reader.nextString());
 //                }
 //                else if(name.equals("external_id")){
 //                    System.out.println(reader.nextString());
@@ -67,52 +69,110 @@ public class AfcsvService {
 //                else if (name.equals("webpage_url")) {
 //                    afcsv.setWebpageUrl(reader.nextString());
 //                }
-                if(name.equals("headline")){
-                    afcsv.setHeadline(reader.nextString());
-                }
-                else if(name.equals("occupation_field")){
-                    reader.beginObject();
-                    while (reader.hasNext()){
-                        name = reader.nextName();
-                        if(name.equals("label")) {
-                            try {
-                                String label = reader.nextString();
-                                afcsv.setOccupationField(label);
-                            }catch(IllegalStateException e){
-                                reader.skipValue();
-                            }
-                        }
-                        else
-                            reader.skipValue();
+                if (name.equals("headline")) {
+                    try {
+                        afcsv.setHeadline(reader.nextString());
+                    } catch (IllegalStateException e) {
+                        reader.skipValue();
                     }
-                    reader.endObject();
-                }
-                else if (name.equals("employer")){
-                    reader.beginObject();
-                    while(reader.hasNext()){
-                        name = reader.nextName();
-                        if(name.equals("name"))
-                            afcsv.setEmployer(reader.nextString());
-                        else
-                            reader.skipValue();
+                } else if (name.equals("application_deadline")) {
+                    try {
+                        afcsv.setApplicationDeadline(reader.nextString());
+                    } catch (IllegalStateException e) {
+                        reader.skipValue();
                     }
-                    reader.endObject();
-                }
-                else if (name.equals("description")) {
+                } else if (name.equals("occupation")) {
                     reader.beginObject();
                     while (reader.hasNext()) {
                         name = reader.nextName();
-                        if (name.equals("text")) {
-                            afcsv.setDescription(reader.nextString());
+                        if (name.equals("label")) {
+                            try {
+                                String label = reader.nextString();
+                                afcsv.setOccupation(label);
+                            } catch (IllegalStateException e) {
+                                reader.skipValue();
+                            }
                         } else
                             reader.skipValue();
                     }
                     reader.endObject();
                 }
-                else if(name.equals("publication_date")){
-                    afcsv.setPublicationDate(reader.nextString());
+                else if (name.equals("detected_language")){
+                    try{
+                        afcsv.setDetectedLanguage(reader.nextString());
+                    } catch(IllegalStateException e){
+                        reader.skipValue();
+                    }
                 }
-                else {
+                else if (name.equals("occupation_field")) {
+                    reader.beginObject();
+                    while (reader.hasNext()) {
+                        name = reader.nextName();
+                        if (name.equals("label")) {
+                            try {
+                                String label = reader.nextString();
+//                                afcsv.setOccupationField(label);
+                                if (label.equals("Data/IT")) {
+                                    willSave = true;
+                                }
+                            } catch (IllegalStateException e) {
+                                reader.skipValue();
+                            }
+                        } else
+                            reader.skipValue();
+                    }
+                    reader.endObject();
+                } else if (name.equals("employer")) {
+                    reader.beginObject();
+                    while (reader.hasNext()) {
+                        name = reader.nextName();
+                        try {
+                            if (name.equals("name"))
+                                afcsv.setEmployer(reader.nextString());
+                            else if (name.equals("workplace"))
+                                afcsv.setEmploymentType(reader.nextString());
+                            else
+                                reader.skipValue();
+                        } catch (IllegalStateException e) {
+                            reader.skipValue();
+                        }
+                    }
+                    reader.endObject();
+                } else if (name.equals("workplace_address")) {
+                    reader.beginObject();
+                    while (reader.hasNext()) {
+                        name = reader.nextName();
+                        try {
+                            if (name.equals("region"))
+                                afcsv.setApplicationContacts(reader.nextString());
+                            else if (name.equals("street_address"))
+                                afcsv.setWorkplaceAddress(reader.nextString());
+                            else if (name.equals("postcode"))
+                                afcsv.setWorkingHoursType(reader.nextString());
+                            else
+                                reader.skipValue();
+                        } catch (IllegalStateException e) {
+                            reader.skipValue();
+                        }
+                    }
+                    reader.endObject();
+                } else if (name.equals("description")) {
+                    reader.beginObject();
+                    while (reader.hasNext()) {
+                        name = reader.nextName();
+                        try {
+                            if (name.equals("text")) {
+                                afcsv.setDescription(reader.nextString());
+                            } else
+                                reader.skipValue();
+                        } catch (IllegalStateException e) {
+                            reader.skipValue();
+                        }
+                    }
+                    reader.endObject();
+                } else if (name.equals("publication_date")) {
+                    afcsv.setPublicationDate(reader.nextString());
+                } else {
                     reader.skipValue();
                 }
 
@@ -122,12 +182,13 @@ public class AfcsvService {
 //                return afcsv.getDescription().toString();
             }
             reader.endObject();
-            System.out.println(afcsv.getOccupationField());
-            if (afcsv.getOccupationField()!=null){
-                if(afcsv.getOccupationField().equals("Data/IT")) {
-                    this.save(afcsv);
-                    System.out.println("BINGOOOOOOOOOOOOOO");
-                }}
+            System.out.println(afcsv.getDetectedLanguage());
+//            if (afcsv.getOccupationField()!=null){
+//                if(afcsv.getOccupationField().equals("Data/IT")) {
+            if (willSave == true) {
+                this.save(afcsv);
+            }
+//                }}
         }
     }
 }
