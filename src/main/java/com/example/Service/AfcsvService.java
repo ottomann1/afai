@@ -3,12 +3,12 @@ package com.example.Service;
 import com.example.Model.Afcsv;
 import com.example.Repository.AfcsvRepo;
 import com.google.gson.stream.JsonReader;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,19 +16,40 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class AfcsvService {
     private final AfcsvRepo repository;
 
     @PersistenceContext
-    EntityManager entityManager;
+    private EntityManager entityManager;
 
+    @Autowired
+    private SmallPromptObjectService spoService;
 
     @Autowired
     public AfcsvService(AfcsvRepo repository) {
         this.repository = repository;
     }
+
+    @Transactional
+    public void streamAllToSpo(){
+        try{
+            Stream<Afcsv> afcsvStream = repository.streamAll();
+            afcsvStream.forEach(s -> {
+                spoService.save(spoService.afcsvToSmallPromptObject(s));
+                System.out.println(s.getId());});
+//            entityManager.getTransaction().commit();
+        }catch (Exception e){
+//            entityManager.getTransaction().rollback();
+            throw e;
+        }finally {
+//            entityManager.close();
+            System.out.println("complete");
+        }
+    }
+
 
     public Afcsv getItem(Integer id) {
         return repository.findById(id).get();
@@ -182,7 +203,6 @@ public class AfcsvService {
 //                return afcsv.getDescription().toString();
             }
             reader.endObject();
-            System.out.println(afcsv.getDetectedLanguage());
 //            if (afcsv.getOccupationField()!=null){
 //                if(afcsv.getOccupationField().equals("Data/IT")) {
             if (willSave == true) {

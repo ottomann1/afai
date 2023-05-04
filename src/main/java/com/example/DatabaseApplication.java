@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Stream;
 
 @SpringBootApplication
 public class DatabaseApplication {
@@ -50,11 +51,12 @@ public class DatabaseApplication {
     //TODO: Rensa annonserna för att bara inkludera viktiga saker
     @PostConstruct
     private void postInit() throws IOException {
+        afcsvToSpo();
 //        loadfiles();
 //        extractByCompany();
 //        spoService.newlineRemover();
 //        updateAiSpo();
-        spoToPrompt();
+//        spoToPrompt();
 //        openAIPromptService.writeAllToFile();
     }
 
@@ -98,11 +100,14 @@ public class DatabaseApplication {
                 employers) {
             afcsvList.addAll(afservice.getByCompany(employer));
         }
-        System.out.println(afcsvList.stream().findFirst().get().getDescription());
         for (Afcsv afcsv : afcsvList) {
-            System.out.println(afcsv.getEmployer());
             spoService.save(spoService.afcsvToSmallPromptObject(afcsv));
         }
+    }
+
+    private void afcsvToSpo(){
+            afservice.streamAllToSpo();
+
     }
 
     private void loadfiles() throws IOException {
@@ -126,6 +131,7 @@ public class DatabaseApplication {
                 "C:\\Users\\ottok\\Downloads\\afjson\\2022"};
         for (String path :
                 paths) {
+            System.out.println(path);
             afservice.readAfcsvFromFile(path + ".json");
         }
     }
